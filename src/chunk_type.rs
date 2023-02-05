@@ -6,16 +6,16 @@ use std::str::FromStr;
 use crate::{Error, Result};
 
 #[allow(unused_variables)]
-const ANC : u8 = 0; 
-const PRI : u8 = 1;
-const RES : u8 = 2; 
-const STC : u8 = 3;  
+// const ANC : u8 = 0; 
+// const PRI : u8 = 1;
+// const RES : u8 = 2; 
+// const STC : u8 = 3;  
 
-const FIFTH_MASK : u8 = 1 << 4;
-const ANC_MASK : u32 = 1 << 4; 
-const PRI_MASK : u32 = 1 << 8; 
-const RES_MASK : u32 = 1 << 12; 
-const STC_MASK : u32 = 1 << 16; 
+// const FIFTH_MASK : u8 = 1 << 4;
+// const ANC_MASK : u32 = 1 << 4; 
+// const PRI_MASK : u32 = 1 << 8; 
+// const RES_MASK : u32 = 1 << 12; 
+// const STC_MASK : u32 = 1 << 16; 
 const BYTE_MASK : u32 = 0xff; 
 
 struct ChunkType{
@@ -26,9 +26,9 @@ impl ChunkType {
     fn bytes(&self) -> [u8; 4]{
         let mut array : [u8 ; 4] = [0; 4];
         let mut sum = self.sum; 
-        for i in 0..3{
-            sum = sum >> (4*i);
-            array[i] = (sum & BYTE_MASK) as u8; 
+        for i in 0..4{
+            array[3-i] = (sum & BYTE_MASK) as u8; 
+            sum = sum >> 8;
         }
         array
     }
@@ -41,9 +41,9 @@ impl TryFrom<[u8; 4]> for ChunkType {
         let mut i : u8;
         let mut chunk =  ChunkType{sum : 0};   
         for i in bytes
-        {
+        {   
+            chunk.sum = chunk.sum << 8;
             chunk.sum += i as u32;
-            chunk.sum = chunk.sum << 8;  
         }
         Ok(chunk)
     }
@@ -59,19 +59,19 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    // pub fn test_chunk_type_from_bytes() {
-    //     let expected = [82, 117, 83, 116];
-    //     let actual = ChunkType::try_from([82, 117, 83, 116]).unwrap();
-
-    //     assert_eq!(expected, actual.bytes());
-    // }
-
     pub fn test_chunk_type_from_bytes() {
-        let expected = 0x74537552;
+        let expected = [82, 117, 83, 116];
         let actual = ChunkType::try_from([82, 117, 83, 116]).unwrap();
 
-        assert_eq!(expected, actual.sum);
+        assert_eq!(expected, actual.bytes());
     }
+
+    // pub fn test_chunk_type_from_bytes() {
+    //     let expected = 0x74537552;
+    //     let actual = ChunkType::try_from([82, 117, 83, 116]).unwrap();
+
+    //     assert_eq!(expected, actual.sum);
+    // }
 
     // #[test]
     // pub fn test_chunk_type_from_str() {
