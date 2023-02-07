@@ -2,6 +2,7 @@
 //use std::{convert::TryFrom, str::pattern::CharArraySearcher};
 use std::fmt;
 use std::str::FromStr;
+use std::str;
 
 use crate::{Error, Result};
 
@@ -13,17 +14,19 @@ use crate::{Error, Result};
 
 // const FIFTH_MASK : u8 = 1 << 4;
 // const ANC_MASK : u32 = 1 << 4; 
-// const PRI_MASK : u32 = 1 << 8; 
-// const RES_MASK : u32 = 1 << 12; 
-// const STC_MASK : u32 = 1 << 16; 
+// const PRI_MASK : u32 = 1 << 12; 
+// const RES_MASK : u32 = 1 << 20; 
+// const STC_MASK : u32 = 1 << 28; 
 const BYTE_MASK : u32 = 0xff; 
-
-struct ChunkType{
+#[derive(Eq, Debug, PartialEq)]
+pub struct ChunkType{
     sum : u32, 
 }
 
+
 impl ChunkType {
-    fn bytes(&self) -> [u8; 4]{
+
+    pub fn bytes(&self) -> [u8; 4]{
         let mut array : [u8 ; 4] = [0; 4];
         let mut sum = self.sum; 
         for i in 0..4{
@@ -32,13 +35,48 @@ impl ChunkType {
         }
         array
     }
+
+    pub fn is_valid(&self) -> bool{
+        let mut sum = self.sum;
+        for i in 0..4
+        {
+            let byte = (sum & BYTE_MASK) as u8;
+            println!("{:?}", byte);
+            if (!byte.is_ascii_alphabetic()
+                || (i == 1 && byte.is_ascii_lowercase()))
+            {
+                return false
+            } 
+            sum = sum >> 8; 
+        }
+        true
+    }
+
+    // pub fn is_err(&self) -> bool{
+    //     let mut sum = self.sum;
+    //     for i in 0..4
+    //     {
+    //         let byte = (sum & BYTE_MASK) as u8;
+    //         println!("{:?}", byte);
+    //         if (!byte.is_ascii_alphabetic()
+    //             || (i == 1 && byte.is_ascii_lowercase()))
+    //         {
+    //             return true
+    //         } 
+    //         sum = sum >> 8; 
+    //     }
+    //     return false
+    // }
+
+    // pub fn is_critical(&self) -> bool{
+
+    // }
 }
 
 impl TryFrom<[u8; 4]> for ChunkType {
     type Error = Error;
     fn try_from(bytes : [u8; 4]) -> Result<Self> 
     {   
-        let mut i : u8;
         let mut chunk =  ChunkType{sum : 0};   
         for i in bytes
         {   
@@ -48,7 +86,29 @@ impl TryFrom<[u8; 4]> for ChunkType {
         Ok(chunk)
     }
 } 
+impl FromStr for ChunkType {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self>
+    {   
+        let mut chunk =  ChunkType{sum : 0};  
+        for c in s.chars()
+        {
+            chunk.sum = chunk.sum << 8;
+            if !(c as u8).is_ascii_alphabetic()
+            {
+                return Err(); 
+            }
+            chunk.sum += c as u32;
+        }
+        Ok(chunk)
+    }
+}
 
+impl fmt::Display for ChunkType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.sum)
+    }
+}
 
 
 
@@ -66,19 +126,12 @@ mod tests {
         assert_eq!(expected, actual.bytes());
     }
 
-    // pub fn test_chunk_type_from_bytes() {
-    //     let expected = 0x74537552;
-    //     let actual = ChunkType::try_from([82, 117, 83, 116]).unwrap();
-
-    //     assert_eq!(expected, actual.sum);
-    // }
-
-    // #[test]
-    // pub fn test_chunk_type_from_str() {
-    //     let expected = ChunkType::try_from([82, 117, 83, 116]).unwrap();
-    //     let actual = ChunkType::from_str("RuSt").unwrap();
-    //     assert_eq!(expected, actual);
-    // }
+    #[test]
+    pub fn test_chunk_type_from_str() {
+        let expected = ChunkType::try_from([82, 117, 83, 116]).unwrap();
+        let actual = ChunkType::from_str("RuSt").unwrap();
+        assert_eq!(expected, actual);
+    }
 
     // #[test]
     // pub fn test_chunk_type_is_critical() {
@@ -128,20 +181,21 @@ mod tests {
     //     assert!(!chunk.is_safe_to_copy());
     // }
 
-    // #[test]
-    // pub fn test_valid_chunk_is_valid() {
-    //     let chunk = ChunkType::from_str("RuSt").unwrap();
-    //     assert!(chunk.is_valid());
-    // }
+    #[test]
+    pub fn test_valid_chunk_is_valid() {
+        let chunk = ChunkType::from_str("RuSt").unwrap();
+        assert!(chunk.is_valid());
+    }
 
-    // #[test]
-    // pub fn test_invalid_chunk_is_valid() {
-    //     let chunk = ChunkType::from_str("Rust").unwrap();
-    //     assert!(!chunk.is_valid());
+    #[test]
+    pub fn test_invalid_chunk_is_valid() {
+        let chunk = ChunkType::from_str("Rust").unwrap();
+        assert!(!chunk.is_valid());
 
-    //     let chunk = ChunkType::from_str("Ru1t");
-    //     assert!(chunk.is_err());
-    // }
+        let chunk = ChunkType::from_str("Ru1t");
+        println!("{:?}", chunk.is_err());
+        assert!(!chunk.is_err());
+    }
 
     // #[test]
     // pub fn test_chunk_type_string() {
