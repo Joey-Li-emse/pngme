@@ -13,10 +13,10 @@ use crate::{Error, Result};
 // const STC : u8 = 3;  
 
 // const FIFTH_MASK : u8 = 1 << 4;
-// const ANC_MASK : u32 = 1 << 4; 
-// const PRI_MASK : u32 = 1 << 12; 
-// const RES_MASK : u32 = 1 << 20; 
-// const STC_MASK : u32 = 1 << 28; 
+const ANC_MASK : u32 = 1 << 28; 
+// const PRI_MASK : u32 = 1 << 20; 
+// const RES_MASK : u32 = 1 << 12; 
+// const STC_MASK : u32 = 1 << 4; 
 const BYTE_MASK : u32 = 0xff; 
 #[derive(Eq, Debug, PartialEq)]
 pub struct ChunkType{
@@ -41,7 +41,6 @@ impl ChunkType {
         for i in 0..4
         {
             let byte = (sum & BYTE_MASK) as u8;
-            println!("{:?}", byte);
             if (!byte.is_ascii_alphabetic()
                 || (i == 1 && byte.is_ascii_lowercase()))
             {
@@ -52,25 +51,10 @@ impl ChunkType {
         true
     }
 
-    // pub fn is_err(&self) -> bool{
-    //     let mut sum = self.sum;
-    //     for i in 0..4
-    //     {
-    //         let byte = (sum & BYTE_MASK) as u8;
-    //         println!("{:?}", byte);
-    //         if (!byte.is_ascii_alphabetic()
-    //             || (i == 1 && byte.is_ascii_lowercase()))
-    //         {
-    //             return true
-    //         } 
-    //         sum = sum >> 8; 
-    //     }
-    //     return false
-    // }
-
-    // pub fn is_critical(&self) -> bool{
-
-    // }
+    pub fn is_critical(&self) -> bool{
+        println!("{:#08b} {} ", self.sum >> 24, self.sum >> 24);
+        (self.sum & ANC_MASK) == 0
+    }
 }
 
 impl TryFrom<[u8; 4]> for ChunkType {
@@ -96,7 +80,7 @@ impl FromStr for ChunkType {
             chunk.sum = chunk.sum << 8;
             if !(c as u8).is_ascii_alphabetic()
             {
-                return Err(); 
+                return Err("Not Alphabetic".into()); 
             }
             chunk.sum += c as u32;
         }
@@ -133,17 +117,17 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    // #[test]
-    // pub fn test_chunk_type_is_critical() {
-    //     let chunk = ChunkType::from_str("RuSt").unwrap();
-    //     assert!(chunk.is_critical());
-    // }
+    #[test]
+    pub fn test_chunk_type_is_critical() {
+        let chunk = ChunkType::from_str("RuSt").unwrap();
+        assert!(chunk.is_critical());
+    }
 
-    // #[test]
-    // pub fn test_chunk_type_is_not_critical() {
-    //     let chunk = ChunkType::from_str("ruSt").unwrap();
-    //     assert!(!chunk.is_critical());
-    // }
+    #[test]
+    pub fn test_chunk_type_is_not_critical() {
+        let chunk = ChunkType::from_str("ruSt").unwrap();
+        assert!(!chunk.is_critical());
+    }
 
     // #[test]
     // pub fn test_chunk_type_is_public() {
@@ -193,8 +177,7 @@ mod tests {
         assert!(!chunk.is_valid());
 
         let chunk = ChunkType::from_str("Ru1t");
-        println!("{:?}", chunk.is_err());
-        assert!(!chunk.is_err());
+        assert!(chunk.is_err());
     }
 
     // #[test]
