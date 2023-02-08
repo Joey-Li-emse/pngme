@@ -20,7 +20,7 @@ const STC_MASK : u32 = 1 << 5;
 const BYTE_MASK : u32 = 0xff; 
 #[derive(Eq, Debug, PartialEq)]
 pub struct ChunkType{
-    sum : u32, 
+    pub sum : u32, 
 }
 
 
