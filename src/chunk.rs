@@ -15,31 +15,32 @@ pub struct Chunk{
 }
 
 impl Chunk{
-    fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk
-    {
-        let len = data.len(); 
-        let chunkt_bytes = chunk_type.bytes(); 
-        let buff = [&data[1..len], &chunkt_bytes].concat();
-        let crc = 
-        let chunk = Chunk{
-            len : 0, 
-            chunk_type : ChunkType {sum :0},
-            data : Vec::new(),
-            crc : 0,
-        };
-        chunk
-    }   
+    // fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk
+    // {
+    //     let len = data.len(); 
+    //     let chunkt_bytes = chunk_type.bytes(); 
+    //     let buff = [&data[1..len], &chunkt_bytes].concat();
+    //     let crc = 
+    //     let chunk = Chunk{
+    //         len : 0, 
+    //         chunk_type : ChunkType {sum :0},
+    //         data : Vec::new(),
+    //         crc : 0,
+    //     };
+    //     chunk
+    // }   
 }
 
 impl TryFrom<&[u8]> for Chunk{
     type Error = Error;
     fn try_from(vec : &[u8]) -> Result<Self>
     {   
+        println!("The new try from");
         let mut len = 0; 
         let len_iter = vec[0..4].iter(); 
         for (i, byte) in len_iter.enumerate()
-        {
-            len += (byte << ((3 - i) * 8)) as  u32;
+        {   
+            len += ((*byte as u32) << ((3 - i) * 8)) as  u32;
         }
 
         let list : [u8; 4] = vec[4..8].try_into().unwrap();
@@ -74,33 +75,33 @@ mod tests {
     use crate::chunk_type::ChunkType;
     use std::str::FromStr;
 
-    // #[test]
-    // fn testing_chunk()  {
-    //     let data_length: u32 = 42;
-    //     let chunk_type = "RuSt".as_bytes();
-    //     let message_bytes = "This is where your secret message will be!".as_bytes();
-    //     let crc: u32 = 2882656334;
-
-    //     let chunk_data: Vec<u8> = data_length
-    //         .to_be_bytes()
-    //         .iter()
-    //         .chain(chunk_type.iter())
-    //         .chain(message_bytes.iter())
-    //         .chain(crc.to_be_bytes().iter())
-    //         .copied()
-    //         .collect();
-        
-    //     Chunk::try_from(chunk_data.as_ref()).unwrap();
-    // }
-
     #[test]
-    fn test_new_chunk() {
-        let chunk_type = ChunkType::from_str("RuSt").unwrap();
-        let data = "This is where your secret message will be!".as_bytes().to_vec();
-        let chunk = Chunk::new(chunk_type, data);
-        assert_eq!(chunk.length(), 42);
-        assert_eq!(chunk.crc(), 2882656334);
+    fn testing_chunk()  {
+        let data_length: u32 = 42;
+        let chunk_type = "RuSt".as_bytes();
+        let message_bytes = "This is where your secret message will be!".as_bytes();
+        let crc: u32 = 2882656334;
+
+        let chunk_data: Vec<u8> = data_length
+            .to_be_bytes()
+            .iter()
+            .chain(chunk_type.iter())
+            .chain(message_bytes.iter())
+            .chain(crc.to_be_bytes().iter())
+            .copied()
+            .collect();
+        
+        Chunk::try_from(chunk_data.as_ref()).unwrap();
     }
+
+    // #[test]
+    // fn test_new_chunk() {
+    //     let chunk_type = ChunkType::from_str("RuSt").unwrap();
+    //     let data = "This is where your secret message will be!".as_bytes().to_vec();
+    //     let chunk = Chunk::new(chunk_type, data);
+    //     assert_eq!(chunk.length(), 42);
+    //     assert_eq!(chunk.crc(), 2882656334);
+    // }
 
     // #[test]
     // fn test_chunk_length() {
