@@ -81,7 +81,7 @@ impl Chunk{
 impl TryFrom<&[u8]> for Chunk{
     type Error = Error;
 
-    fn try_from(vec : &[u8]) -> Result<Self>
+    pub fn try_from(vec : &[u8]) -> Result<Self>
     {   
         let mut len = 0; 
         let len_iter = vec[0..4].iter(); 
@@ -122,6 +122,7 @@ impl TryFrom<&[u8]> for Chunk{
         }
         return Err("Crc doesn't match".into())
     }
+    
 }
 
 mod tests {
