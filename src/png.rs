@@ -124,7 +124,6 @@ impl TryFrom<&[u8]> for Png{
                 }
             }
         }
-
         if cnt == 3
         {   
             png.chunk_list.push(Chunk{
@@ -135,14 +134,17 @@ impl TryFrom<&[u8]> for Png{
             });
             cur_state = State::Len;
         }
-        if png.header == Png::STANDARD_HEADER
-        {
-            return Ok(png)
-        }
+        
         if cur_state != State::Len
         {
             return Err("Chunk not aligned ".into())
         }
+
+        if png.header == Png::STANDARD_HEADER
+        {
+            return Ok(png)
+        }
+        
         Err("Header does not correspond".into())
     }
 }
