@@ -6,32 +6,27 @@ use std::str;
 
 use crate::{Error, Result};
 
-#[allow(unused_variables)]
-// const ANC : u8 = 0; 
-// const PRI : u8 = 1;
-// const RES : u8 = 2; 
-// const STC : u8 = 3;  
 
-// const FIFTH_MASK : u8 = 1 << 5;
-const ANC_MASK : u32 = 1 << 29; 
-const PRI_MASK : u32 = 1 << 21; 
-const RES_MASK : u32 = 1 << 13; 
-const STC_MASK : u32 = 1 << 5; 
-const BYTE_MASK : u32 = 0xff; 
 #[derive(Eq, Debug, PartialEq)]
 pub struct ChunkType{
     pub sum : u32, 
 }
 
-
+#[allow(unused)]
 impl ChunkType {
+
+    const ANC_MASK : u32 = 1 << 29; 
+    const PRI_MASK : u32 = 1 << 21; 
+    const RES_MASK : u32 = 1 << 13; 
+    const STC_MASK : u32 = 1 << 5; 
+    const BYTE_MASK : u32 = 0xff; 
 
     pub fn bytes(&self) -> [u8; 4]{
         let mut array : [u8 ; 4] = [0; 4];
         let mut sum = self.sum; 
         for i in 0..4{
-            array[3-i] = (sum & BYTE_MASK) as u8; 
-            sum = sum >> 8;
+            array[3-i] = (sum & ChunkType::BYTE_MASK) as u8; 
+            sum >>= 8;
         }
         array
     }
@@ -40,31 +35,31 @@ impl ChunkType {
         let mut sum = self.sum;
         for i in 0..4
         {
-            let byte = (sum & BYTE_MASK) as u8;
+            let byte = (sum & ChunkType::BYTE_MASK) as u8;
             if  !byte.is_ascii_alphabetic()
                 || (i == 1 && byte.is_ascii_lowercase())
             {
                 return false
             } 
-            sum = sum >> 8; 
+            sum >>= 8; 
         }
         true
     }
 
     pub fn is_critical(&self) -> bool{
-        (self.sum & ANC_MASK) == 0
+        (self.sum & ChunkType::ANC_MASK) == 0
     }
 
     pub fn is_public(&self) -> bool{
-        (self.sum & PRI_MASK) == 0
+        (self.sum & ChunkType::PRI_MASK) == 0
     }
 
     pub fn is_reserved_bit_valid(&self) -> bool{
-        (self.sum & RES_MASK) == 0
+        (self.sum & ChunkType::RES_MASK) == 0
     }
 
     pub fn is_safe_to_copy(&self) -> bool{
-        (self.sum & STC_MASK) != 0
+        (self.sum & ChunkType::STC_MASK) != 0
     }
 }
 
@@ -75,7 +70,7 @@ impl TryFrom<[u8; 4]> for ChunkType {
         let mut chunk =  ChunkType{sum : 0};   
         for i in bytes
         {   
-            chunk.sum = chunk.sum << 8;
+            chunk.sum <<= 8;
             chunk.sum += i as u32;
         }
         Ok(chunk)
@@ -88,7 +83,7 @@ impl FromStr for ChunkType {
         let mut chunk =  ChunkType{sum : 0};  
         for c in s.chars()
         {
-            chunk.sum = chunk.sum << 8;
+            chunk.sum <<= 8;
             if !(c as u8).is_ascii_alphabetic()
             {
                 return Err("Not Alphabetic".into()); 
@@ -105,9 +100,9 @@ impl fmt::Display for ChunkType {
         let mut u8_list :[u8; 4] = [0;4];
         for i in 0..4
         {   
-            let byte = (sum & BYTE_MASK) as u8;
+            let byte = (sum & ChunkType::BYTE_MASK) as u8;
             u8_list[3-i]= byte ;
-            sum = sum >> 8;
+            sum >>= 8;
         }
         let s = std::str::from_utf8(&u8_list[0..4]).expect("invalid utf-8 sequence");
         write!(f, "{}", s)
@@ -115,7 +110,7 @@ impl fmt::Display for ChunkType {
 }
 
 
-
+#[allow(unused)]
 #[cfg(test)]
 mod tests {
     use super::*;

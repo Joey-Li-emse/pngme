@@ -20,10 +20,10 @@ impl fmt::Display for Png{
 
 #[derive(PartialEq)]
 enum State{
-    LEN,
-    CHUNKT,
-    DATA,
-    CRC,
+    Len,
+    Chunkt,
+    Data,
+    Crc,
 }
 
 impl TryFrom<&[u8]> for Png{
@@ -45,7 +45,7 @@ impl TryFrom<&[u8]> for Png{
         let mut cur_crc : u32 = 0;
 
 
-        let mut cur_state = State::LEN; 
+        let mut cur_state = State::Len; 
         for (i, byte) in vec.iter().enumerate()
         {   
             if i < 8
@@ -55,12 +55,12 @@ impl TryFrom<&[u8]> for Png{
             }
 
             match cur_state {
-                State::LEN => 
+                State::Len => 
                 {
                     length += (*byte as usize) << ((3 - cnt) * 8);
                     if cnt == 3
                     {   
-                        cur_state = State::CHUNKT;
+                        cur_state = State::Chunkt;
                         cnt = 0;
                         continue;
                     }
@@ -68,17 +68,17 @@ impl TryFrom<&[u8]> for Png{
                     continue; 
 
                 }
-                State::CHUNKT => 
+                State::Chunkt => 
                 {   
                     
                     chunkt[cnt] = *byte; 
                     if cnt == 3
                     {
                         if length != 0 {
-                            cur_state = State::DATA;
+                            cur_state = State::Data;
                         }
                         else {
-                            cur_state = State::CRC;
+                            cur_state = State::Crc;
                         } 
                         cnt = 0;
                         continue;
@@ -86,19 +86,19 @@ impl TryFrom<&[u8]> for Png{
                     cnt += 1; 
                     continue; 
                 }
-                State::DATA => 
+                State::Data => 
                 {   
                     cur_data.push(*byte);
                     if cnt == length.saturating_sub(1)
                     {   
-                        cur_state = State::CRC; 
+                        cur_state = State::Crc; 
                         cnt = 0;
                         continue;
                     }
                     cnt += 1;
                     continue;
                 }
-                State::CRC => 
+                State::Crc => 
                 {
                     cur_crc += (*byte as u32) << ((3 - cnt) * 8);
                     if cnt == 3
@@ -110,7 +110,7 @@ impl TryFrom<&[u8]> for Png{
                             crc : cur_crc,
                         });
 
-                        cur_state = State::LEN;
+                        cur_state = State::Len;
                         cnt = 0;
                         length = 0;
                         chunkt = [0; 4];
@@ -133,13 +133,13 @@ impl TryFrom<&[u8]> for Png{
                 data : cur_data.clone(),
                 crc : cur_crc,
             });
-            cur_state = State::LEN;
+            cur_state = State::Len;
         }
         if png.header == Png::STANDARD_HEADER
         {
             return Ok(png)
         }
-        if cur_state != State::LEN
+        if cur_state != State::Len
         {
             return Err("Chunk not aligned ".into())
         }
@@ -283,7 +283,7 @@ mod tests {
             0, 0, 0, 5,         // length
             32, 117, 83, 116,   // Chunk Type (bad)
             65, 64, 65, 66, 67, // Data
-            1, 2, 3, 4, 5       // CRC (bad)
+            1, 2, 3, 4, 5       // Crc (bad)
         ];
 
         chunk_bytes.append(&mut bad_chunk);

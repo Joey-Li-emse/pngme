@@ -26,19 +26,19 @@ impl fmt::Display for Chunk{
 
 #[allow(unused)]
 impl Chunk{
-    pub fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk
+    pub fn new(chunk_t: ChunkType, arg_data: Vec<u8>) -> Chunk
     {
-        let len = data.len(); 
-        let chunkt_bytes = chunk_type.bytes(); 
-        let buff: Vec<u8> = chunkt_bytes.iter().chain(data.iter()).copied().collect(); 
+        let length = arg_data.len(); 
+        let chunkt_bytes = chunk_t.bytes(); 
+        let buff: Vec<u8> = chunkt_bytes.iter().chain(arg_data.iter()).copied().collect(); 
 
         let crc = Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
         let crc_sum = crc.checksum(&buff);
 
         Chunk{
-            len : len as u32, 
-            chunk_type : chunk_type,
-            data : data,
+            len : length as u32, 
+            chunk_type : chunk_t,
+            data : arg_data,
             crc : crc_sum,
         }
     }
@@ -60,7 +60,7 @@ impl Chunk{
     }
 
     pub fn data_as_string(&self) -> Result<String>{
-        let string = String::from_utf8(self.data.iter().copied().collect()).unwrap(); 
+        let string = String::from_utf8(self.data.to_vec()).unwrap(); 
         Ok(string)
     }
 
@@ -84,44 +84,44 @@ impl TryFrom<&[u8]> for Chunk{
 
     fn try_from(vec : &[u8]) -> Result<Self>
     {   
-        let mut len = 0; 
+        let mut length = 0; 
         let len_iter = vec[0..4].iter(); 
         for (i, byte) in len_iter.enumerate()
         {
-            len += ((*byte as u32) << ((3 - i) * 8)) as  u32;
+            length += (*byte as u32) << ((3 - i) * 8);
         }
 
         let list : [u8; 4] = vec[4..8].try_into().unwrap();
         let chunk_t = ChunkType::try_from(list).unwrap();
 
-        let mut data = Vec::new();
-        let data_end = (8 + len) as usize;
+        let mut arg_data = Vec::new();
+        let data_end = (8 + length) as usize;
         let data_iter = vec[8..data_end].iter();
         for i in data_iter{
-            data.push(*i);
+            arg_data.push(*i);
         }
 
         let mut crc_tmp = 0; 
         let crc_iter = vec[data_end..].iter(); 
         for (i, byte) in crc_iter.enumerate()
         {
-            crc_tmp += ((*byte as u32) << ((3 - i) * 8)) as  u32;
+            crc_tmp += (*byte as u32) << ((3 - i) * 8);
         }
 
         let crc = Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
-        let buff: Vec<u8> = list.iter().chain(data.iter()).copied().collect();
+        let buff: Vec<u8> = list.iter().chain(arg_data.iter()).copied().collect();
         let crc_sum = crc.checksum(&buff); 
         if crc_sum == crc_tmp
         {
             let chunk = Chunk{
-                len : len,
+                len : length,
                 chunk_type : chunk_t,
-                data : data,
+                data : arg_data,
                 crc :crc_tmp,
             };
             return Ok(chunk)
         }
-        return Err("Crc doesn't match".into())
+        Err("Crc doesn't match".into())
     }
     
 }
