@@ -7,10 +7,10 @@ use crate::chunk_type::ChunkType;
 
 #[derive(Debug)]
 pub struct Chunk{
-    len : u32, 
-    chunk_type : ChunkType,
-    data : Vec<u8>,
-    crc : u32,
+    pub len : u32, 
+    pub chunk_type : ChunkType,
+    pub data : Vec<u8>,
+    pub crc : u32,
 }
 
 impl fmt::Display for Chunk{
@@ -24,6 +24,7 @@ impl fmt::Display for Chunk{
     }
 }
 
+#[allow(unused)]
 impl Chunk{
     pub fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk
     {
@@ -81,7 +82,7 @@ impl Chunk{
 impl TryFrom<&[u8]> for Chunk{
     type Error = Error;
 
-    pub fn try_from(vec : &[u8]) -> Result<Self>
+    fn try_from(vec : &[u8]) -> Result<Self>
     {   
         let mut len = 0; 
         let len_iter = vec[0..4].iter(); 
@@ -125,6 +126,8 @@ impl TryFrom<&[u8]> for Chunk{
     
 }
 
+#[allow(unused)]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::chunk_type::ChunkType;
@@ -252,3 +255,4 @@ mod tests {
         let _chunk_string = format!("{}", chunk);
     }
 }
+

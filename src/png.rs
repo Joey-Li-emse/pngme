@@ -1,13 +1,12 @@
 use std::fmt;
 use std::str::FromStr;
 use std::str;
-use crc::Crc; 
 
 use crate::{Error, Result};
 use crate::chunk_type::ChunkType;
 use crate::chunk::Chunk;
 
-const STANDARD_HEADER : u64 = 0x89504e470d0a1a0a; 
+#[derive(Debug)]
 pub struct Png{
     header : [u8; 8],
     chunk_list : Vec<Chunk>,
@@ -18,7 +17,9 @@ impl fmt::Display for Png{
         write!(f, "{:?} {:?}", self.header, self.chunk_list)
     }
 }
-enum state{
+
+#[derive(PartialEq)]
+enum State{
     LEN,
     CHUNKT,
     DATA,
@@ -40,28 +41,26 @@ impl TryFrom<&[u8]> for Png{
 
         let mut length: usize = 0;  
         let mut chunkt: [u8; 4] = [0; 4];
-        let mut ChunkT: ChunkType; 
         let mut cur_data = Vec::new(); 
         let mut cur_crc : u32 = 0;
 
-        let mut chunk : Chunk; 
 
-        let mut cur_state = state::LEN; 
+        let mut cur_state = State::LEN; 
         for (i, byte) in vec.iter().enumerate()
-        {
-            if(i < 8)
+        {   
+            if i < 8
             {
                 png.header[i] = *byte; 
                 continue; 
             }
 
             match cur_state {
-                state::LEN => 
+                State::LEN => 
                 {
-                    length += (*byte as usize) << (3 - (cnt) * 8);
+                    length += (*byte as usize) << ((3 - cnt) * 8);
                     if cnt == 3
                     {   
-                        cur_state = state::CHUNKT;
+                        cur_state = State::CHUNKT;
                         cnt = 0;
                         continue;
                     }
@@ -69,44 +68,49 @@ impl TryFrom<&[u8]> for Png{
                     continue; 
 
                 }
-                state::CHUNKT => 
+                State::CHUNKT => 
                 {   
+                    
                     chunkt[cnt] = *byte; 
                     if cnt == 3
                     {
-                        ChunkT = ChunkType::try_from(chunkt).unwrap(); 
-                        cur_state = state::DATA; 
+                        if length != 0 {
+                            cur_state = State::DATA;
+                        }
+                        else {
+                            cur_state = State::CRC;
+                        } 
                         cnt = 0;
                         continue;
                     }
                     cnt += 1; 
                     continue; 
                 }
-                state::DATA => 
-                {
+                State::DATA => 
+                {   
                     cur_data.push(*byte);
-                    if cnt == length - 1
+                    if cnt == length.saturating_sub(1)
                     {   
-                        cur_state = state::CRC; 
+                        cur_state = State::CRC; 
                         cnt = 0;
                         continue;
                     }
                     cnt += 1;
                     continue;
                 }
-                state::CRC => 
+                State::CRC => 
                 {
-                    cur_crc += (*byte as u32) << (3 - (cnt) * 8);
+                    cur_crc += (*byte as u32) << ((3 - cnt) * 8);
                     if cnt == 3
                     {   
                         png.chunk_list.push(Chunk{
                             len : length as u32, 
-                            chunk_type : ChunkT,
-                            data : cur_data,
+                            chunk_type : ChunkType::try_from(chunkt).unwrap(),
+                            data : cur_data.clone(),
                             crc : cur_crc,
                         });
 
-                        cur_state = state::LEN;
+                        cur_state = State::LEN;
                         cnt = 0;
                         length = 0;
                         chunkt = [0; 4];
@@ -120,13 +124,78 @@ impl TryFrom<&[u8]> for Png{
                 }
             }
         }
-        Ok(png)
+
+        if cnt == 3
+        {   
+            png.chunk_list.push(Chunk{
+                len : length as u32, 
+                chunk_type : ChunkType::try_from(chunkt).unwrap(),
+                data : cur_data.clone(),
+                crc : cur_crc,
+            });
+            cur_state = State::LEN;
+        }
+        if png.header == Png::STANDARD_HEADER
+        {
+            return Ok(png)
+        }
+        if cur_state != State::LEN
+        {
+            return Err("Chunk not aligned ".into())
+        }
+        Err("Header does not correspond".into())
     }
 }
 
+#[allow(unused)]
+impl Png{
+    pub const STANDARD_HEADER : [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10]; 
 
-#![allow(unused_variables)]
-fn main() {
+    pub fn from_chunks(chunks: Vec<Chunk>) -> Png{
+        Png{
+            header : Png::STANDARD_HEADER,
+            chunk_list : chunks,
+        }
+    }
+
+    pub fn chunks(&self) -> &[Chunk]{
+        &self.chunk_list 
+    }
+
+    pub fn header(&self) -> &[u8; 8]{
+        &self.header
+    }
+
+    pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk>{
+        self.chunk_list.iter().find(|chunk| chunk.chunk_type() == &ChunkType::from_str(chunk_type).unwrap())
+    }
+
+    pub fn append_chunk(&mut self, chunk: Chunk){
+        self.chunk_list.push(chunk);
+    }
+
+    fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk>{
+        for (i, chunk) in self.chunk_list.iter().enumerate()
+        {
+            if chunk.chunk_type() == &ChunkType::from_str(chunk_type).unwrap()
+            {
+                return Ok(self.chunk_list.remove(i))
+            }
+        }
+        Err("Did not find element to remove".into())
+    }
+
+    fn as_bytes(&self) -> Vec<u8>{
+        let mut bytes = Vec::new(); 
+        bytes.extend_from_slice(&self.header); 
+        for chunk in self.chunk_list.iter(){
+            bytes.extend_from_slice(&chunk.as_bytes())
+        }
+        bytes
+    }
+}
+
+#[allow(unused)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,7 +220,6 @@ mod tests {
     }
 
     fn chunk_from_strings(chunk_type: &str, data: &str) -> Result<Chunk> {
-        use std::str::FromStr;
 
         let chunk_type = ChunkType::from_str(chunk_type)?;
         let data: Vec<u8> = data.bytes().collect();
@@ -239,7 +307,6 @@ mod tests {
         let chunk = png.chunk_by_type("FrSt").unwrap();
         assert_eq!(&chunk.chunk_type().to_string(), "FrSt");
         assert_eq!(&chunk.data_as_string().unwrap(), "I am the first chunk");
-
     }
 
     #[test]
@@ -539,4 +606,4 @@ mod tests {
         160, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
     ];
 }
-}
+
