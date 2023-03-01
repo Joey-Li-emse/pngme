@@ -9,11 +9,14 @@ pub type Error = Box<dyn std::error::Error>;
 pub type Result<T> = std::result::Result<T, Error>;
 
 fn main() -> Result<()> {
-    println!("Hello World");
-    let clap_arg = args::Args::parse(); 
+    let clap_arg = args::Cli::parse(); 
 
-
-    println!("Hello {:?}", clap_arg.name);
+    match &clap_arg.command{
+        args::Commands::Encode(args) => commands::encode(args),
+        args::Commands::Decode(args) => commands::decode(args),
+        args::Commands::Remove(args) => commands::remove(args),
+        args::Commands::Print(args) => commands::print(args),
+    }
 
 
     Ok(())
