@@ -176,7 +176,7 @@ impl Png{
         self.chunk_list.push(chunk);
     }
 
-    fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk>{
+    pub fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk>{
         for (i, chunk) in self.chunk_list.iter().enumerate()
         {
             if chunk.chunk_type() == &ChunkType::from_str(chunk_type).unwrap()
@@ -187,7 +187,7 @@ impl Png{
         Err("Did not find element to remove".into())
     }
 
-    fn as_bytes(&self) -> Vec<u8>{
+    pub fn as_bytes(&self) -> Vec<u8>{
         let mut bytes = Vec::new(); 
         bytes.extend_from_slice(&self.header); 
         for chunk in self.chunk_list.iter(){
